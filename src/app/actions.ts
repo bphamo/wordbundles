@@ -28,62 +28,99 @@ export async function signOutAction() {
   };
 }
 
+// Generic state used by useFormState-driven auth forms
+export interface FormState {
+  ok: boolean;
+  message: string;
+}
+
+// Helpers
+function formDataToObject(formData: FormData): Record<string, string> {
+  const entries = Array.from(formData.entries()).map(
+    ([k, v]) => [k, String(v)] as const
+  );
+  return Object.fromEntries(entries);
+}
+
+// Sign in
 const signInSchema = z.object({
-  email: z.email("Please enter a valid email."),
+  email: z.string().email("Please enter a valid email."),
   password: z.string().min(1, "Password is required."),
 });
+export type SignInForm = z.infer<typeof signInSchema>;
 
-export async function signInAction(raw: unknown) {
-  const input = signInSchema.safeParse(raw);
-  if (!input.success) {
-    const message =
-      input.error.issues[0]?.message || "Invalid input. Please try again.";
-    return { ok: false as const, message };
+export async function signInAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const raw = formDataToObject(formData);
+  const parsed = signInSchema.safeParse({
+    email: raw.email,
+    password: raw.password,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message:
+        parsed.error.issues[0]?.message || "Invalid input. Please try again.",
+    };
   }
 
   try {
     await auth.api.signInEmail({
       body: {
-        email: input.data.email,
-        password: input.data.password,
+        email: parsed.data.email,
+        password: parsed.data.password,
       },
     });
     redirect("/");
-  } catch (e: unknown) {
+  } catch (e) {
     const message = e instanceof Error ? e.message : "Sign-in failed";
-    return { ok: false as const, message };
+    return { ok: false, message };
   }
-
-  return { ok: true as const, message: "" };
+  return { ok: true, message: "" };
 }
 
+// Sign up
 const signUpSchema = z.object({
   name: z.string().min(1, "Name is required."),
-  email: z.email("Please enter a valid email."),
+  email: z.string().email("Please enter a valid email."),
   password: z.string().min(8, "Password must be at least 8 characters."),
 });
+export type SignUpForm = z.infer<typeof signUpSchema>;
 
-export async function signUpAction(raw: unknown) {
-  const input = signUpSchema.safeParse(raw);
-  if (!input.success) {
-    const message =
-      input.error.issues[0]?.message || "Invalid input. Please try again.";
-    return { ok: false as const, message };
+export async function signUpAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const raw = formDataToObject(formData);
+  const parsed = signUpSchema.safeParse({
+    name: raw.name,
+    email: raw.email,
+    password: raw.password,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message:
+        parsed.error.issues[0]?.message || "Invalid input. Please try again.",
+    };
   }
+
   try {
     await auth.api.signUpEmail({
       body: {
-        name: input.data.name,
-        email: input.data.email,
-        password: input.data.password,
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: parsed.data.password,
       },
     });
     redirect("/");
-  } catch (e: unknown) {
+  } catch (e) {
     const message = e instanceof Error ? e.message : "Sign-up failed";
-    return { ok: false as const, message };
+    return { ok: false, message };
   }
-  return { ok: true as const, message: "" };
+  return { ok: true, message: "" };
 }
 
 const createBoardSchema = z.object({
@@ -93,8 +130,9 @@ const createBoardSchema = z.object({
   isPublic: z.boolean().optional(),
   moderation: z.enum(["auto", "manual"]).optional(),
 });
+export type CreateBoardForm = z.infer<typeof createBoardSchema>;
 
-export async function createBoardAction(raw: unknown) {
+export async function createBoardAction(raw: CreateBoardForm) {
   const session = await getSession();
   if (!session?.user) return { ok: false as const, message: "Unauthorized" };
   const input = createBoardSchema.safeParse(raw);
@@ -114,8 +152,9 @@ const createSubmissionSchema = z.object({
   boardId: z.string().min(1),
   text: z.string().min(1).max(80),
 });
+export type CreateSubmissionForm = z.infer<typeof createSubmissionSchema>;
 
-export async function createSubmissionAction(raw: unknown) {
+export async function createSubmissionAction(raw: CreateSubmissionForm) {
   const input = createSubmissionSchema.safeParse(raw);
   if (!input.success) return { ok: false as const, message: "Invalid input" };
   const result = await createSubmission(input.data);
@@ -128,6 +167,7 @@ export async function getBoardAction(boardId: string) {
 }
 
 export async function listTopKeywordsAction(boardId: string) {
-  // This can be wrapped with cache tags if needed in RSC usage
-  return listTopKeywords(boardId, 50);
+  const result = await listTopKeywords(boardId, 50);
+  console.log(result);
+  return result;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { signUpAction } from "@/app/actions";
 import {
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useActionState } from "react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -26,7 +27,7 @@ function SubmitButton() {
 }
 
 export default function SignUpPage() {
-  const [state, formAction] = useFormState(signUpAction, {
+  const [state, formAction] = useActionState(signUpAction, {
     ok: true,
     message: "",
   });

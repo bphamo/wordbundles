@@ -111,6 +111,13 @@ This document outlines how we structure a Next.js (App Router) codebase and the 
 - Client Components must not import server-only modules (DB, filesystem, `next/cache` server utilities).
 - Fetch data in Server Components or Server Actions; pass serialized props into Client Components.
 
+### Component file boundaries
+
+- One component per file. Keep files focused and cohesive.
+- Route-owned components live under the route folder in a `components/` subdirectory.
+  - Example: `src/app/boards/[id]/components/word-cloud.tsx`, `src/app/boards/[id]/components/submission-form.tsx`.
+- Shared UI primitives remain in `src/components/ui/`.
+
 ## API routes vs Server Actions
 
 - Prefer Server Actions for first-party form mutations and authenticated operations within the app.

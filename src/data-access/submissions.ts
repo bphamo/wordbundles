@@ -39,7 +39,7 @@ export async function createSubmission(
       },
     });
     return { ok: true, data: submission };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       message: "Failed to create submission",
@@ -53,22 +53,19 @@ export async function listTopKeywords(
   limit = 25
 ): Promise<Result<Array<{ normalized: string; count: number }>>> {
   try {
-    const rows = await db.$queryRaw<
-      Array<{ normalized: string; count: bigint }>
-    >`
-      SELECT normalized, COUNT(*)::bigint as count
-      FROM submission
-      WHERE boardId = ${boardId} AND approved = true
-      GROUP BY normalized
-      ORDER BY COUNT(*) DESC
-      LIMIT ${limit}
-    `;
-    const data = rows.map((r) => ({
-      normalized: r.normalized,
-      count: Number(r.count),
+    const groups = await db.submission.groupBy({
+      by: ["normalized"],
+      where: { boardId, approved: true },
+      _count: { normalized: true },
+      orderBy: { _count: { normalized: "desc" } },
+      take: limit,
+    });
+    const data = groups.map((g) => ({
+      normalized: g.normalized,
+      count: g._count.normalized,
     }));
     return { ok: true, data };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       message: "Failed to load keywords",
